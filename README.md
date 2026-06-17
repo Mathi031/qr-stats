@@ -7,6 +7,24 @@ servicio (`stats-api`, en Node) que recibe esas matrices y responde con máximo,
 promedio, suma y si alguna es diagonal. Sobre ambas APIs hay un frontend que permite probar
 todo el flujo desde el navegador.
 
+## Demo desplegado
+
+La aplicación está desplegada en Render y se puede probar directamente desde el navegador:
+
+| Servicio   | URL                                            |
+| ---------- | ---------------------------------------------- |
+| Frontend   | https://qr-frontend-q3e8.onrender.com          |
+| qr-api     | https://qr-api-qzrt.onrender.com               |
+| stats-api  | https://stats-api-5u8c.onrender.com            |
+
+Abre el [frontend](https://qr-frontend-q3e8.onrender.com), inicia sesión con las
+credenciales por defecto (`admin` / `admin`), introduce una matriz y obtén `Q`, `R` y sus
+estadísticas. La URL base de la API ya viene apuntando a `qr-api` en Render.
+
+> Nota: las instancias usan el plan gratuito de Render y se suspenden por inactividad, por lo
+> que la primera petición tras un rato de inactividad puede tardar hasta ~50 segundos en
+> responder mientras el servicio vuelve a arrancar.
+
 ## Qué hace
 
 El flujo típico tiene dos pasos: primero se obtiene un token y luego se llama al endpoint de
@@ -212,7 +230,7 @@ cabecera `X-Internal-Key` en su llamada a `stats-api`, y este rechaza con 401 cu
 petición a `/api/v1/statistics` que no la traiga correcta. El cliente externo nunca ve esta
 cabecera; la gestiona `qr-api` de forma transparente.
 
-## Tests, CI y despliegue
+## Tests
 
 Los tests se corren con el `Makefile` de la raíz:
 
@@ -224,8 +242,4 @@ make test-node
 
 El frontend se valida con su propio build (`cd frontend && npm run build`), que incluye el
 type-check con `tsc`.
-
-El workflow de GitHub Actions (`.github/workflows/ci.yml`) corre en cada push y pull request
-a `main`, con tres jobs en paralelo: `go vet` + `go test` en `go-qr-api`, `npm ci` + `npm test`
-en `node-stats-api`, y `npm ci` + `npm run build` en `frontend`.
 
