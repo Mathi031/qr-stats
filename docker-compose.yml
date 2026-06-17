@@ -1,0 +1,32 @@
+services:
+  stats-api:
+    build: ./node-stats-api
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      # Shared secret: must match qr-api's INTERNAL_API_KEY below.
+      - INTERNAL_API_KEY=dev-internal-key-change-me
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  qr-api:
+    build: ./go-qr-api
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - STATS_API_URL=http://stats-api:3000
+      - JWT_SECRET=dev-secret-change-me
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=admin
+      # Shared secret: must match stats-api's INTERNAL_API_KEY above.
+      - INTERNAL_API_KEY=dev-internal-key-change-me
+      # Allowed browser origin(s) for CORS. "*" for local dev; in prod restrict
+      # to the frontend URL (e.g. https://qr-frontend.onrender.com).
+      - CORS_ORIGIN=*
+    depends_on:
+      stats-api:
+        condition: service_healthy

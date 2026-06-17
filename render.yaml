@@ -1,0 +1,70 @@
+# render.yaml — Blueprint de despliegue para Render.
+# Dos servicios Docker (qr-api en Go, stats-api en Node), ambos web, misma región.
+# Plan free: tiene cold starts (el servicio se duerme tras inactividad). Para evitarlos,
+# subir cualquiera de los dos a un plan pago (p. ej. "starter") en este mismo archivo.
+# Grupo de entorno con el secreto interno compartido. Render genera UN valor y,
+# al enlazarlo a ambos servicios con fromGroup, los dos reciben el MISMO secreto,
+# de modo que la llamada qr-api -> stats-api (header X-Internal-Key) coincide.
+envVarGroups:
+  - name: internal-auth
+    envVars:
+      - key: INTERNAL_API_KEY
+        generateValue: true
+
+services:
+  # Servicio interno de estadísticas (Node + Express).
+  - type: web
+    name: stats-api
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: ./node-stats-api/Dockerfile
+    dockerContext: ./node-stats-api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Comparte INTERNAL_API_KEY con qr-api a través del grupo.
+      - fromGroup: internal-auth
+
+  # Punto de entrada público (Go + Fiber). Consume stats-api por su URL pública.
+  - type: web
+    name: qr-api
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: ./go-qr-api/Dockerfile
+    dockerContext: ./go-qr-api
+    healthCheckPath: /health
+    envVars:
+      # En plan free el DNS privado web-a-web NO resuelve, así que se usa la URL
+      # pública HTTPS de stats-api. En un plan pago se convertiría stats-api en un
+      # pserv interno y se volvería a referenciar con fromService (hostport).
+      - key: STATS_API_URL
+        value: https://stats-api-5u8c.onrender.com
+      # Mismo INTERNAL_API_KEY que stats-api (grupo compartido).
+      - fromGroup: internal-auth
+      # Secreto de firma de los JWT: Render genera uno aleatorio.
+      - key: JWT_SECRET
+        generateValue: true
+      # Credenciales del endpoint /api/v1/token: se setean en el dashboard.
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
+      # CORS_ORIGIN se deja SIN setear: qr-api cae al default "*", lo que permite
+      # que el sitio estático (y cualquier origen) llame a la API. En producción
+      # se restringiría a la URL pública del frontend (qr-frontend más abajo),
+      # p. ej. añadiendo aquí:
+      #   - key: CORS_ORIGIN
+      #     value: https://qr-frontend.onrender.com
+
+  # Frontend estático (React + Vite + Tailwind). Render instala dependencias y
+  # compila en su build; publica el directorio dist/ resultante. No es un
+  # contenedor: solo sirve archivos estáticos por CDN.
+  - type: web
+    name: qr-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist

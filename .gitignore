@@ -1,0 +1,31 @@
+# Local dev / tooling context — never committed
+CLAUDE.md
+**/CLAUDE.md
+.claude/
+**/.claude/
+.cursor/
+.aider*
+*.local.md
+
+# Environment
+.env
+.env.local
+*.env
+
+# Go
+go-qr-api/qr-api
+*.test
+*.out
+coverage.out
+
+# Node
+node_modules/
+npm-debug.log*
+coverage/
+node-stats-api/dist/
+
+# OS / editors
+.DS_Store
+*.swp
+.idea/
+.vscode/

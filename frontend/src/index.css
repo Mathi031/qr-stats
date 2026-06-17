@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "tailwind-animations";
+
+:root {
+  color-scheme: light dark;
+}
